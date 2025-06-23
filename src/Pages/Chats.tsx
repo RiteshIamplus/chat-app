@@ -1,8 +1,10 @@
 import  { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import axios from 'axios';
 
-const socket = io('http://192.168.1.20:5000');
+import API from '@/lib/axios';
+import { BASE_URL } from '@/lib/baseUrl';
+
+const socket = io(BASE_URL);
 
 type Message = {
   senderId: string;
@@ -18,7 +20,7 @@ const ChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, otherU
   useEffect(() => {
     socket.emit('join', { userId: currentUserId });
 
-    axios.get(`http://192.168.1.20:5000/messages/${currentUserId}/${otherUserId}`)
+    API.get(`/messages/${currentUserId}/${otherUserId}`)
       .then(res => setMessages(res.data));
 
     socket.on('receiveMessage', (msg: Message) => {

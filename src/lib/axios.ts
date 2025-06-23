@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { BASE_URL } from './baseUrl';
+
 
 // Create an Axios instance with default config
 const API = axios.create({
-  baseURL: 'https://implusbackend-2.onrender.com', // ✅ Change to your backend API base URL
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

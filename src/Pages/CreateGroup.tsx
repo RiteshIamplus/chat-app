@@ -86,13 +86,14 @@ const CreateGroupForm = () => {
   onChange={(e) => {
     const selectedIds = Array.from(e.target.selectedOptions).map((opt) => opt.value);
     setSelectedMembers(selectedIds);
+    console.log(selectedIds)
   }}
 >
 
           {contacts
             .filter((c) => c.type !== 'group') // only show individual users
             .map((c) => (
-              <option key={c._id} value={c.chatId}>
+              <option key={c._id} value={c._id}>
                 {c.userName || c.display_name}
               </option>
             ))}

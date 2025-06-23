@@ -59,8 +59,8 @@ console.log(selectedUserID)
 
     return (
       <div
-        key={item.chatId}
-        onClick={() => setSelectedUser(item.chatId)}
+        key={item._id}
+        onClick={() => setSelectedUser(item._id)}
         className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
       >
         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold

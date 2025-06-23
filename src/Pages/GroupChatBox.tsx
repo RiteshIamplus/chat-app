@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 
 import API from "@/lib/axios";
+import { BASE_URL } from "@/lib/baseUrl";
 
-const socket = io("http://192:168:1:17:5000");
+const socket = io(BASE_URL);
 
 type Message = {
   senderId: string;
