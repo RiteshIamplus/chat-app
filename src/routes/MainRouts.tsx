@@ -1,13 +1,14 @@
 import GroupChatBox from "../Pages/GroupChatBox";
-import AjayChatBox from "../Pages/Ajay";
-import SohelChatBox from "../Pages/Sohel";
+// import AjayChatBox from "../Pages/Ajay";
+// import SohelChatBox from "../Pages/Sohel";
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import CreateGroupForm from "../Pages/CreateGroup";
 
 import LoginPage from "../Pages/loginPage";
 import ChatList from "@/Pages/ChatListUI";
-import MainChatPage from "../Pages/MainChatPage";
+// import MainChatPage from "../Pages/MainChatPage";
+
 import PersonalChatPage from "@/Pages/PersonalChatPage";
 
 
