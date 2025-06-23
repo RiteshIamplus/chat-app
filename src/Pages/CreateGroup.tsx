@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '@/lib/axios';
 import {
@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MultiSelect } from '@/components/ui/multiselect'; // If using custom multiselect
+ // If using custom multiselect
 // OR use a simple fallback if you're not using a multiselect component.
 
 const CreateGroupForm = () => {

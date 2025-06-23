@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import SohelChatBox from './Sohel';
-import axios from 'axios';
+
 import API from '@/lib/axios';
 
 const MainChatPage = () => {
@@ -19,7 +19,7 @@ const MainChatPage = () => {
     { id: '00002', username: 'Rahul', phone_number: '9812345678' },
     { id: '00003', username: 'Sneha', phone_number: '7000112233' },
   ];
-
+console.log(users)
   const handleSearch = async () => {
     // const result = users.find((user) => user.phone_number === query.trim());
     try {

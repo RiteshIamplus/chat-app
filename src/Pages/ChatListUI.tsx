@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,7 +11,7 @@ const ChatList = () => {
   const [searchResult, setSearchResult] = useState<any | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [selectedUserID, setSelectedUser] = useState<string | null>(null);
-
+console.log(selectedUserID)
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
 
