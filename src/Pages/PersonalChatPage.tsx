@@ -9,6 +9,9 @@ const PersonalChatPage = () => {
 //   console.log(userString)
   const user = userString ? JSON.parse(userString) : null;
 
+  console.log(userId)
+  console.log(user.id)
+
   if (!user || !userId) return <p className="p-4">❌ User not found</p>;
 
   return (

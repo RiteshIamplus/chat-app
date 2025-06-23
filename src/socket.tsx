@@ -1,7 +1,8 @@
 // src/socket.js
 import { io } from "socket.io-client";
+import { BASE_URL } from "./lib/baseUrl";
 
 // Replace with your backend server URL
-const socket = io("http://192.168.1.2:5000"); 
+const socket = io(BASE_URL); 
 
 export default socket;

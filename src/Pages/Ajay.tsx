@@ -1,8 +1,9 @@
 import  { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { BASE_URL } from '@/lib/baseUrl';
 
-const socket = io('http://192.168.1.15:5000');
+const socket = io(BASE_URL);
 
 type Message = {
   senderId: string;
@@ -18,7 +19,7 @@ const AjayChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, ot
   useEffect(() => {
     socket.emit('join', { userId: currentUserId });
 
-    axios.get(`http://192.168.1.15:5000/api/chat/messages/${currentUserId}/${otherUserId}`)
+    axios.get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
       .then(res => setMessages(res.data));
 
     socket.on('receiveMessage', (msg: Message) => {
@@ -45,7 +46,7 @@ const AjayChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, ot
     setNewMessage('');
   };
 // try {
-// const res = await axios.get(`http://localhost:5000/api/search?q=${query}`);
+// const res = await API.get(`/api/search?q=${query}`);
 // setResults(res.data);
 // } catch (err) {
 // console.error('Search failed:', err);
