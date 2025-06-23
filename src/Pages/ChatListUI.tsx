@@ -20,7 +20,8 @@ console.log(selectedUserID)
 
     API.get(`/api/chat/full-chat-list/${user._id}`)
       .then(res => {
-        setContacts(res.data.data || []);
+        console.log(res.data.data)
+        setContacts(res?.data?.data || []);
       })
       .catch(err => {
         console.error("❌ API Error:", err.response?.data || err.message || err);
@@ -133,7 +134,7 @@ console.log(selectedUserID)
           <TabsContent value="all" className="flex-1 overflow-y-auto">
             <ScrollArea className="h-full p-2 space-y-2">
               <div className="text-xs font-semibold text-gray-500 px-2">Chats</div>
-              {contacts.map(renderChatCard)}
+              {contacts.length>0 && contacts.map(renderChatCard)}
             </ScrollArea>
           </TabsContent>
 
