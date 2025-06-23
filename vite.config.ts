@@ -11,6 +11,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+      enabled: true, // IMPORTANT for local development
+      },
+      includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      
       manifest: {
         name: 'Mera React App',
         short_name: 'ReactApp',

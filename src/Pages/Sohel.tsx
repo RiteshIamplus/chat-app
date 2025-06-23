@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 
 import API from '@/lib/axios';
 
-const socket = io('http://192.168.1.10:5000');
+const socket = io('http://192.168.1.17:5000');
 
 type Message = {
   senderId: string;
