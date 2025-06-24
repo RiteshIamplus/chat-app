@@ -25,7 +25,7 @@ const SohelChatBox = ({
   const socketRef = useRef(io(BASE_URL)); // Socket initialized once
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // console.log(currentUserId)
-  // console.log(otherUserId)
+  console.log(contacts)
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

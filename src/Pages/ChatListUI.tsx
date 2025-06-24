@@ -11,7 +11,7 @@ const ChatList = () => {
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<any | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [selectedUserID, setSelectedUser] = useState<string | null>(null);
+  const [selectedUserID] = useState<string | null>(null);
 console.log(selectedUserID)
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
@@ -56,7 +56,7 @@ console.log(selectedUserID)
     const displayName = isGroup ? item.name : item.userName;
     const initials = displayName?.[0] || "?";
     const lastMsg = item?.lastMsg?.message || "";
-    const lastSeen = !item.online ? item.last_seen : "";
+    // const lastSeen = !item.online ? item.last_seen : "";
     const unread = item?.unreadCount > 0 ;
     // console.log(item)
 
