@@ -21,10 +21,11 @@ const GroupChatBox = ({
   currentUserId: string;
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [groupInfo, setGroupInfo] = useState<any | null>(null);
+  const [groupInfo] = useState<any | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
