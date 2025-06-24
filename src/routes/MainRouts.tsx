@@ -16,7 +16,7 @@ const AuthRoutes: React.FC = () => {
   return (
     <Routes>
    
-      <Route path="/" element={<ChatList />} />
+      <Route path="/" element={<LoginPage />} />
       {/* <Route path="/ajay" element={<AjayChatBox currentUserId="ajay002" otherUserId="sohel001" />} /> */}
       <Route path="/ajaygroupChats" element={<GroupChatBox groupId="6851255a4237491d28a8ad46"  currentUserId="ajay002"/>} />
       <Route path="/sohelgroupChats" element={<GroupChatBox groupId="6851255a4237491d28a8ad46"  currentUserId="sohel001"/>} />
