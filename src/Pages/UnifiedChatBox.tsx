@@ -82,8 +82,8 @@ const UnifiedChatBox = ({ type, currentUserId, otherUserId, groupId }: Props) =>
         }
       };
 
-      socket.on("newMessageReceived", handleUserMessage);
-
+      socket.on("receiveMessage", handleUserMessage);
+      
       return () => {
         socket.off("receiveMessage", handleUserMessage);
       };
