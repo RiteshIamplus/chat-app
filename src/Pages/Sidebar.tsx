@@ -2,11 +2,12 @@ import { Home, Info, Phone, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-const Sidebar = () => {
+const Sidebar = ({ closeSidebar }: { closeSidebar?: () => void }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    closeSidebar?.(); // 🔹 Close sidebar if provided
     navigate("/login");
   };
 
@@ -30,7 +31,11 @@ const Sidebar = () => {
         </a>
       </Button>
 
-      <Button variant="ghost" className="justify-start text-red-600" onClick={handleLogout}>
+      <Button
+        variant="ghost"
+        className="justify-start text-red-600"
+        onClick={handleLogout}
+      >
         <LogOut className="mr-2 h-5 w-5" /> Logout
       </Button>
     </div>
@@ -38,3 +43,6 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+
+

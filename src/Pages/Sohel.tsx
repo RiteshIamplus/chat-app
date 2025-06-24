@@ -140,60 +140,62 @@ const SohelChatBox = ({
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16">
-      {/* Header */}
-      <div className="p-4 border-b bg-blue-600 text-white font-semibold text-lg">
-        {matchedChat?.userName}
-        <div className="text-xs text-gray-400">
-          {!matchedChat?.online && matchedChat?.last_seen
-            ? formatLastSeen(matchedChat.last_seen)
-            : "online"}
-        </div>
-      </div>
+    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100 dark:bg-gray-800 pb-20">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
-              msg.senderId === currentUserId
-                ? "ml-auto bg-blue-500 text-white"
-                : "mr-auto bg-gray-200 text-black"
-            }`}
-          >
-            <p>{msg.message}</p>
-            <div className="text-[10px] text-right text-white/70 dark:text-gray-400 mt-1">
-              {new Date(msg.timestamp).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Box */}
-      <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
-        <input
-          type="text"
-          className="flex-1 p-2 border rounded-full focus:outline-none text-sm"
-          placeholder="Type a message"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
-        />
-        <button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm"
-          onClick={sendMessage}
-        >
-          Send
-        </button>
+    {/* Fixed Header Below Navbar */}
+    <div className="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
+      <div>{matchedChat?.userName}</div>
+      <div className="text-xs text-white/80 font-normal">
+        {!matchedChat?.online && matchedChat?.last_seen
+          ? formatLastSeen(matchedChat.last_seen)
+          : "online"}
       </div>
     </div>
+  
+    {/* Messages with space for fixed header and footer */}
+    <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
+      {messages.map((msg, i) => (
+        <div
+          key={i}
+          className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
+            msg.senderId === currentUserId
+              ? "ml-auto bg-blue-500 text-white"
+              : "mr-auto bg-gray-200 text-black"
+          }`}
+        >
+          <p>{msg.message}</p>
+          <div className="text-[10px] text-right text-white/70 dark:text-gray-400 mt-1">
+            {new Date(msg.timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+        </div>
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
+  
+    {/* Input Box Fixed to Bottom */}
+    <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
+      <input
+        type="text"
+        className="flex-1 p-2 border rounded-full focus:outline-none text-sm"
+        placeholder="Type a message"
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") sendMessage();
+        }}
+      />
+      <button
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm"
+        onClick={sendMessage}
+      >
+        Send
+      </button>
+    </div>
+  </div>
+  
   );
 };
 

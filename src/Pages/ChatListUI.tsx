@@ -63,7 +63,9 @@ console.log(selectedUserID)
     return (
       <div
         key={item._id}
-        onClick={() => navigate(`/chat/${item._id}`)}
+        onClick={() => navigate(`/chat/${item._id}`, {
+          state: { type: item.type, participants: item.participants }
+        })}
 
         className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
       >

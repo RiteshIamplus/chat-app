@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
-
 import API from "@/lib/axios";
 import { BASE_URL } from "@/lib/baseUrl";
 
@@ -22,81 +21,91 @@ const GroupChatBox = ({
   currentUserId: string;
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [groupInfo, setGroupInfo] = useState<any | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
+    if (!groupId || !currentUserId) return;
+
     socket.emit("joinGroup", { groupId, userId: currentUserId });
 
-    API.get(`/group-messages/${groupId}`)
-      .then((res) => setMessages(res.data))
+    API.get(`api/chatGroup/getGroupMsg/${groupId}`)
+      .then((res) =>{ 
+        // console.log(res.data) 
+        setMessages(res?.data?.data)})
       .catch((err) => console.error("Error loading messages:", err));
 
-    socket.on("receiveGroupMessage", (msg: Message) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    // API.get(`/group-info/${groupId}`)
+    //   .then((res) => setGroupInfo(res.data))
+    //   .catch(console.warn);
 
-    socket.on("groupError", (error: { message: string }) => {
-      alert(error.message);
-      console.warn("Group error:", error);
-    });
+    const receiveGroupMessage = (msg: Message) => {
+      setMessages((prev) => [...prev, msg]);
+    };
+
+    socket.on("receiveGroupMessage", receiveGroupMessage);
+    socket.on("groupError", (err) => alert(err.message));
 
     return () => {
-      socket.off("receiveGroupMessage");
+      socket.off("receiveGroupMessage", receiveGroupMessage);
       socket.off("groupError");
     };
-  }, [groupId]);
+  }, [groupId, currentUserId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(scrollToBottom, [messages]);
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
-    //  enum: ['text', 'visitor', 'checkin', 'checkout', 'task', 'note', 'file'],
+
     socket.emit("sendGroupMessage", {
       groupId,
       senderId: currentUserId,
       message: newMessage,
-      messageType: "task", // Example message type
-      payload: {
-        name: "sohwel tayde",
-        phone: "999-123-4567",
-        purpose: "Delivery",
-        photoUrl:
-          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKH-a-tnSlIfXqCGJ5DU7sw2frDu5Wi28vGg&s",
-      },
+      messageType: "text",
       timestamp: new Date().toISOString(),
     });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        senderId: currentUserId,
+        message: newMessage,
+        messageType: "text",
+        timestamp: new Date().toISOString(),
+      },
+    ]);
 
     setNewMessage("");
   };
 
-  const renderMessage = (msg: Message) => {
+  const renderMessageContent = (msg: Message) => {
     switch (msg.messageType) {
-      case "text":
-        return <p>{msg.message}</p>;
       case "visitor":
         return (
           <div className="bg-yellow-100 p-2 rounded">
-            <div>
-              <strong>Visitor:</strong> {msg.payload?.name} (
-              {msg.payload?.phone})<br />
-              Purpose: {msg.payload?.purpose}
-            </div>
-            <img src={msg.payload?.photoUrl} alt="" />
+            <strong>Visitor:</strong> {msg.payload?.name} ({msg.payload?.phone})
+            <br />
+            Purpose: {msg.payload?.purpose}
+            {msg.payload?.photoUrl && (
+              <img src={msg.payload?.photoUrl} alt="Visitor" className="mt-2 rounded w-20" />
+            )}
           </div>
         );
       case "checkin":
         return (
-          <div className="text-green-700">
-            ✅ Check-in at {msg.payload?.location}
+          <div className="text-green-700 font-medium">
+            ✅ Checked in at {msg.payload?.location}
           </div>
         );
       case "checkout":
         return (
-          <div className="text-red-600">
-            ⏱️ Check-out at {msg.payload?.location}
+          <div className="text-red-600 font-medium">
+            ⏱️ Checked out at {msg.payload?.location}
           </div>
         );
       case "task":
@@ -126,39 +135,49 @@ const GroupChatBox = ({
   };
 
   return (
-    <div className="p-4 border rounded max-w-md mx-auto">
-      <div className="h-64 overflow-y-auto mb-2 bg-gray-100 p-2 rounded">
+    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16">
+      {/* Header */}
+      <div className="p-4 border-b bg-green-600 text-white font-semibold text-lg">
+        {groupInfo?.name || "Group Chat"}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100 dark:bg-gray-800 pb-20">
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`p-1 my-1 rounded ${
+            className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
               msg.senderId === currentUserId
-                ? "text-right bg-green-200"
-                : "text-left bg-gray-300"
+                ? "ml-auto bg-green-500 text-white"
+                : "mr-auto bg-gray-200 text-black"
             }`}
           >
-            <p>
-              <strong>{msg.senderId}:</strong>
-            </p>
-            {renderMessage(msg)}
-            <small className="text-xs text-gray-600 block">
-              {new Date(msg.timestamp).toLocaleTimeString()}
-            </small>
+            {renderMessageContent(msg)}
+            <div className="text-[10px] text-right text-white/70 dark:text-gray-400 mt-1">
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-2">
+      {/* Input */}
+      <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
         <input
           type="text"
-          className="flex-1 border px-2 py-1"
+          className="flex-1 p-2 border rounded-full focus:outline-none text-sm"
+          placeholder="Type a message"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage();
+          }}
         />
         <button
-          className="bg-green-500 text-white px-4 py-1 rounded"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full text-sm"
           onClick={sendMessage}
         >
           Send
