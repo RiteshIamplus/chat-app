@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import API from "@/lib/axios";
 
+
 const ChatList = () => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<any[]>([]);
@@ -54,13 +55,16 @@ console.log(selectedUserID)
     const isGroup = item.type === "group";
     const displayName = isGroup ? item.name : item.userName;
     const initials = displayName?.[0] || "?";
-    const lastMsg = item.lastMessage?.text || "";
-    const unread = item.unreadCount > 0;
+    const lastMsg = item?.lastMsg?.message || "";
+    const lastSeen = !item.online ? item.last_seen : "";
+    const unread = item?.unreadCount > 0 ;
+    // console.log(item)
 
     return (
       <div
         key={item._id}
-        onClick={() => setSelectedUser(item._id)}
+        onClick={() => navigate(`/chat/${item._id}`)}
+
         className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
       >
         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold
