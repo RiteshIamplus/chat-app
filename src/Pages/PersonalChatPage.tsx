@@ -26,10 +26,11 @@ const PersonalChatPage = () => {
       <h2 className="text-xl font-bold mb-4 text-blue-600">
         Chat with {userId}
       </h2>
-      {chatTypeFromState == "user" ? (
-        <SohelChatBox currentUserId={user._id} otherUserId={userId} />
-      ) : (
+      {chatTypeFromState == "group" ? (
         <GroupChatBox groupId={userId} currentUserId={user._id} />
+      
+      ) : (
+        <SohelChatBox currentUserId={user._id} otherUserId={userId} />
       )}
     </div>
   );

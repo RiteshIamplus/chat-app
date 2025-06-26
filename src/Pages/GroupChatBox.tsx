@@ -21,7 +21,8 @@ const GroupChatBox = ({
   currentUserId: string;
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [groupInfo] = useState<any | null>(null);
+  const [groupName, setGroupName] = useState("Group Chat");
+  const [groupStatus, setGroupStatus] = useState("No group status set");
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,15 +35,23 @@ const GroupChatBox = ({
 
     socket.emit("joinGroup", { groupId, userId: currentUserId });
 
-    API.get(`api/chatGroup/getGroupMsg/${groupId}`)
-      .then((res) =>{ 
-        // console.log(res.data) 
-        setMessages(res?.data?.data)})
+    // ✅ Fetch group messages
+    API.get(`/api/chatGroup/getGroupMsg/${groupId}`)
+      .then((res) => setMessages(res?.data?.data || []))
       .catch((err) => console.error("Error loading messages:", err));
 
-    // API.get(`/group-info/${groupId}`)
-    //   .then((res) => setGroupInfo(res.data))
-    //   .catch(console.warn);
+    // ✅ Fetch full chat list to get group name and status
+    API.get(`/api/chat/full-chat-list/${currentUserId}`)
+      .then((res) => {
+        const chats = res?.data?.data || [];
+        const groupChat = chats.find(
+          (chat: any) => chat.type === "group" && chat._id === groupId
+        );
+        if (groupChat?.name) setGroupName(groupChat.name);
+        if (groupChat?.group_status_message)
+          setGroupStatus(groupChat.group_status_message);
+      })
+      .catch((err) => console.error("Error getting group info:", err));
 
     const receiveGroupMessage = (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
@@ -92,7 +101,11 @@ const GroupChatBox = ({
             <br />
             Purpose: {msg.payload?.purpose}
             {msg.payload?.photoUrl && (
-              <img src={msg.payload?.photoUrl} alt="Visitor" className="mt-2 rounded w-20" />
+              <img
+                src={msg.payload?.photoUrl}
+                alt="Visitor"
+                className="mt-2 rounded w-20"
+              />
             )}
           </div>
         );
@@ -135,20 +148,21 @@ const GroupChatBox = ({
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16">
+    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
       {/* Header */}
-      <div className="p-4 border-b bg-green-600 text-white font-semibold text-lg">
-        {groupInfo?.name || "Group Chat"}
+      <div className="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
+        <div>{groupName}</div>
+        <div className="text-xs text-white/80 font-normal">{groupStatus}</div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100 dark:bg-gray-800 pb-20">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100 dark:bg-gray-800 pb-20 mt-[88px]">
         {messages.map((msg, i) => (
           <div
             key={i}
             className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
               msg.senderId === currentUserId
-                ? "ml-auto bg-green-500 text-white"
+                ? "ml-auto bg-blue-600 text-white"
                 : "mr-auto bg-gray-200 text-black"
             }`}
           >
@@ -177,7 +191,7 @@ const GroupChatBox = ({
           }}
         />
         <button
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full text-sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm"
           onClick={sendMessage}
         >
           Send

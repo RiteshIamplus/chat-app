@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import API from "@/lib/axios";
+import { BASE_URL } from "@/lib/baseUrl";
+import { io } from "socket.io-client";
 
-
+const socket = io(BASE_URL);
 const ChatList = () => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<any[]>([]);
@@ -15,19 +17,58 @@ const ChatList = () => {
 console.log(selectedUserID)
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
+// console.log(user)
+useEffect(() => {
+  if (!user?._id) return;
 
-  useEffect(() => {
-    if (!user?._id) return;
+  const groupID = localStorage.getItem("groupID");
 
-    API.get(`/api/chat/full-chat-list/${user._id}`)
-      .then(res => {
-        console.log(res.data.data)
+  const fetchChatList = () => {
+    API.get(`/api/chat/full-chat-list/${user._id}?markRead=false`)
+      .then((res) => {
         setContacts(res?.data?.data || []);
       })
-      .catch(err => {
-        console.error("❌ API Error:", err.response?.data || err.message || err);
+      .catch((err) => {
+        console.error("❌ Error fetching chat list:", err.response?.data || err.message);
       });
-  }, [user?._id]);
+  };
+
+  // ✅ Socket join and listeners
+  socket.emit("join", { userId: user._id });
+  socket.emit("joinGroup", { groupId: groupID, userId: user._id });
+
+  socket.on("newUnreadMessage", ({ from }) => {
+    console.log("📩 Real-time update from", from);
+    fetchChatList();
+  });
+
+  socket.on("newGroupCreated", (data) => {
+    console.log("🆕 New group created", data.group);
+    fetchChatList();
+  });
+
+  return () => {
+    socket.off("newUnreadMessage");
+    socket.off("newGroupCreated");
+    socket.off("groupError");
+  };
+}, [user?._id]);
+
+// ✅ Default fetch on initial render (markRead = true)
+useEffect(() => {
+  if (!user?._id) return;
+
+  API.get(`/api/chat/full-chat-list/${user._id}?markRead=true`)
+    .then((res) => {
+      // console.log("📥 Initial chat list (markRead=true):", res.data.data);
+      setContacts(res?.data?.data || []);
+    })
+    .catch((err) => {
+      console.error("❌ API Error:", err.response?.data || err.message);
+    });
+}, [user?._id]);
+
+  
 
   const handleSearch = async () => {
     try {
@@ -51,6 +92,8 @@ console.log(selectedUserID)
     }
   };
 
+  
+
   const renderChatCard = (item: any) => {
     const isGroup = item.type === "group";
     const displayName = isGroup ? item.name : item.userName;
@@ -58,7 +101,7 @@ console.log(selectedUserID)
     const lastMsg = item?.lastMsg?.message || "";
     // const lastSeen = !item.online ? item.last_seen : "";
     const unread = item?.unreadCount > 0 ;
-    // console.log(item)
+    // console.log(item?.unreadCount)
 
     return (
       <div
@@ -80,7 +123,7 @@ console.log(selectedUserID)
         </div>
         {unread && (
           <div className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-            {item.unreadCount}
+            {item?.unreadCount}
           </div>
         )}
       </div>
@@ -89,7 +132,7 @@ console.log(selectedUserID)
 
   return (
     <div className="flex w-full flex-col md:flex-row bg-white dark:bg-black my-16">
-      <div className="w-full border-r border-gray-200 dark:border-gray-800">
+      <div className="w-full   border-r border-gray-200 dark:border-gray-800">
         {/* Search */}
         <div className="p-4 border-b">
           <div className="flex gap-2">

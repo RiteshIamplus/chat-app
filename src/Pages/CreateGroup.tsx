@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+// import { json } from 'stream/consumers';
 
 
 const CreateGroupForm = () => {
@@ -51,7 +52,8 @@ const CreateGroupForm = () => {
         members: selectedMembers,
         admins:[user?._id]
       });
-
+// console.log(res.data)
+localStorage.setItem("groupID", res.data._id);
       setCreatedGroupName(res.data.name);
       setShowSuccessDialog(true);
     } catch (err) {
