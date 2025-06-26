@@ -67,7 +67,17 @@ const GroupChatBox = ({
   }, [groupId, currentUserId]);
 
   useEffect(scrollToBottom, [messages]);
-
+  useEffect(() => {
+    const markChatAsRead = async () => {
+      try {
+        await API.post(`/api/chat/markRead/${currentUserId}/${groupId}`);
+      } catch (err) {
+        console.error("❌ Failed to mark chat as read", err);
+      }
+    };
+  
+    markChatAsRead(); // ✅ Call it
+  }, []);
   const sendMessage = () => {
     if (!newMessage.trim()) return;
 
@@ -156,7 +166,7 @@ const GroupChatBox = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100 dark:bg-gray-800 pb-20 mt-[88px]">
+      <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
         {messages.map((msg, i) => (
           <div
             key={i}
