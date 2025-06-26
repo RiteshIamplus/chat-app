@@ -18,48 +18,33 @@ const SohelChatBox = ({
   otherUserId: string;
 }) => {
   const [matchedChat, setMatchedChat] = useState<any | null>(null);
-
   const [contacts, setContacts] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const socketRef = useRef(io(BASE_URL)); // Socket initialized once
+  const socketRef = useRef(io(BASE_URL));
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // console.log(currentUserId)
-  console.log(contacts)
-  // Auto-scroll to bottom
+console.log(contacts)
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
   useEffect(() => {
     if (!currentUserId || !otherUserId) return;
 
-    API.get(`/api/chat/full-chat-list/${currentUserId}`) // fetch currentUser's chats
+    API.get(`/api/chat/full-chat-list/${currentUserId}`)
       .then((res) => {
         const chats = res?.data?.data || [];
-
-        console.log(chats);
         setContacts(chats);
 
-        // Try to match chat where the other participant is `otherUserId`
         const matched = chats.find((chat: any) => {
           if (chat.type === "group") return false;
-
-          // Match based on userId/participant (adjust based on your backend shape)
-          return (
-            chat._id === otherUserId ||
-            (Array.isArray(chat.participants) &&
-              chat.participants.includes(otherUserId))
-          );
+          return chat._id === otherUserId;
         });
 
         setMatchedChat(matched || null);
-        console.log("✅ Matched Chat Object:", matched);
       })
       .catch((err) => {
-        console.error(
-          "❌ API Error:",
-          err.response?.data || err.message || err
-        );
+        console.error("❌ API Error:", err.response?.data || err.message || err);
       });
   }, [currentUserId, otherUserId]);
 
@@ -68,7 +53,6 @@ const SohelChatBox = ({
     const now = new Date();
 
     const isToday = date.toDateString() === now.toDateString();
-
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday = date.toDateString() === yesterday.toDateString();
@@ -78,44 +62,55 @@ const SohelChatBox = ({
       minute: "2-digit",
     });
 
-    if (isToday) {
-      return `last seen today at ${time}`;
-    } else if (isYesterday) {
-      return `last seen yesterday at ${time}`;
-    } else {
-      const formattedDate = date.toLocaleDateString([], {
-        day: "numeric",
-        month: "short",
-      });
-      return `last seen on ${formattedDate} at ${time}`;
-    }
+    if (isToday) return `last seen today at ${time}`;
+    if (isYesterday) return `last seen yesterday at ${time}`;
+
+    const formattedDate = date.toLocaleDateString([], {
+      day: "numeric",
+      month: "short",
+    });
+    return `last seen on ${formattedDate} at ${time}`;
   };
 
   useEffect(() => {
     const socket = socketRef.current;
 
-    // Join socket room
-    socket.emit("join", { userId: currentUserId });
+    socket.emit("userOnline", currentUserId); // ✅ Mark user online
+    socket.emit("join", { userId: currentUserId }); // ✅ Join personal room
 
-    // Fetch previous messages
+    // Fetch existing messages
     API.get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
-      .then((res) => {
-        // console.log(res)
-        setMessages(res.data);
+      .then((res) =>{ 
+        console.log(res.data)
+        setMessages(res?.data.data)
+      
       })
       .catch(console.error);
 
-    // Handle incoming messages
-    const handleReceive = (msg: Message) => {
-      if (msg.senderId === otherUserId && msg.receiverId === currentUserId) {
-        setMessages((prev) => [...prev, msg]);
-      }
-    };
+    // ✅ Handle real-time incoming messages
+    // const handleReceive = (msg: Message) => {
+    //   console.log(msg)
+    //   if (
+    //     msg.senderId === otherUserId &&
+    //     msg.receiverId === currentUserId
+    //   ) {
+    //     setMessages((prev) => {
+    //       console.log("Appending", msg, "to", prev);
+    //       return [...prev, msg];
+    //     });
+    //   }
+    // };
 
-    socket.on("receiveMessage", handleReceive);
+    const handleReceive = (msg: Message) => {
+      console.log("📩 New Message Received:", msg);
+      setMessages((prev) => [...prev, msg]);
+    };
+    
+
+    socket.on("newMessageReceived", handleReceive);
 
     return () => {
-      socket.off("receiveMessage", handleReceive);
+      socket.off("newMessageReceived", handleReceive);
     };
   }, [currentUserId, otherUserId]);
 
@@ -131,7 +126,6 @@ const SohelChatBox = ({
     };
 
     socketRef.current.emit("sendMessage", msg);
-    // For now, append local timestamp (better to rely on server's timestamp ideally)
     setMessages((prev) => [
       ...prev,
       { ...msg, timestamp: new Date().toISOString() },
@@ -140,62 +134,60 @@ const SohelChatBox = ({
   };
 
   return (
-   <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
-
-  {/* Fixed Header Below Navbar */}
-  <div className="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
-    <div>{matchedChat?.userName}</div>
-    <div className="text-xs text-white/80 font-normal">
-      {!matchedChat?.online && matchedChat?.last_seen
-        ? formatLastSeen(matchedChat.last_seen)
-        : "online"}
-    </div>
-  </div>
-
-  {/* Messages with space for fixed header and footer */}
-  <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
-    {messages.map((msg, i) => (
-      <div
-        key={i}
-        className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
-          msg.senderId === currentUserId
-            ? "ml-auto bg-blue-500 text-white"
-            : "mr-auto bg-gray-200 text-black"
-        }`}
-      >
-        <p>{msg.message}</p>
-        <div className="text-[10px] text-right text-white/70 dark:text-gray-400 mt-1">
-          {new Date(msg.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+    <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
+      {/* Header */}
+      <div className="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
+        <div>{matchedChat?.userName}</div>
+        <div className="text-xs text-white/80 font-normal">
+          {!matchedChat?.online && matchedChat?.last_seen
+            ? formatLastSeen(matchedChat.last_seen)
+            : "online"}
         </div>
       </div>
-    ))}
-    <div ref={messagesEndRef} />
-  </div>
 
-  {/* Input Box Fixed to Bottom */}
-  <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
-    <input
-      type="text"
-      className="flex-1 p-2 border rounded-full focus:outline-none text-sm"
-      placeholder="Type a message"
-      value={newMessage}
-      onChange={(e) => setNewMessage(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") sendMessage();
-      }}
-    />
-    <button
-      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm"
-      onClick={sendMessage}
-    >
-      Send
-    </button>
-  </div>
-</div>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
+        {messages?.map((msg, i) => (
+          <div
+            key={i}
+            className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
+              msg.senderId === currentUserId
+                ? "ml-auto bg-blue-500 text-white"
+                : "mr-auto bg-gray-200 text-black"
+            }`}
+          >
+            <p>{msg.message}</p>
+            <div className="text-[10px] text-right text-white/70 dark:text-gray-400 mt-1">
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
 
+      {/* Input */}
+      <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
+        <input
+          type="text"
+          className="flex-1 p-2 border rounded-full focus:outline-none text-sm"
+          placeholder="Type a message"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage();
+          }}
+        />
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm"
+          onClick={sendMessage}
+        >
+          Send
+        </button>
+      </div>
+    </div>
   );
 };
 
