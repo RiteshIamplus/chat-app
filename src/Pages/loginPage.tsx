@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 const LoginPage = () => {
   const navigate = useNavigate();
 
-  const [phone_number, setphone_number] = useState("+91");
+  const [phone_number, setphone_number] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("send"); // 'send' or 'verify'
   const [message, setMessage] = useState("");

@@ -109,30 +109,38 @@ useEffect(() => {
     const lastMsg = item?.lastMsg?.message || "";
     // const lastSeen = !item.online ? item.last_seen : "";
     const unread = item?.unreadCount > 0 ;
-    // console.log(item?.unreadCount)
+    console.log(item?.unreadCount)
 
     return (
       <div
-        key={item._id}
-        onClick={
-          
-          async () => {
-          // try {
-          //   await API.post(`/api/chat/markRead/${user._id}`, {
-          //     chatId: item._id,
-          //   });
-          // } catch (err) {
-          //   console.error("❌ Failed to mark chat as read", err);
-          // }
-        
-          navigate(`/chat/${item._id}`, {
-            state: { type: item.type, participants: item.participants }
-          });
-        }}
-        
-
-        className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
-      >
+      key={item._id}
+      onClick={async () => {
+        // try {
+        //   let response;
+    
+        //   if (item.type === "group") {
+        //     // 👥 Group Chat
+        //     response = await API.post(`/api/chat/markRead/${user._id}/${item._id}`);
+        //   } else {
+        //     // 👤 Personal Chat
+        //     response = await API.post(`/api/chat/markRead/${user._id}`, {
+        //       groupId: null,
+        //       chatId: item._id,
+        //     });
+        //   }
+    
+        //   console.log("✅ Mark Read Response:", response.data);
+        // } catch (err) {
+        //   console.error("❌ Failed to mark chat as read", err);
+        // }
+    
+        navigate(`/chat/${item._id}`, {
+          state: { type: item.type, participants: item.participants },
+        });
+      }}
+      className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
+    >
+    
         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold
           ${isGroup ? 'bg-green-500 dark:bg-green-700' : 'bg-gray-300 dark:bg-gray-600'}`}
         >
