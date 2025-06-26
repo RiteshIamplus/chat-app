@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import API from "@/lib/axios";
 import { BASE_URL } from "@/lib/baseUrl";
+import Toast from "@/components/custom/toast/Toast";
 
 type Message = {
   senderId: string;
@@ -17,6 +18,9 @@ const SohelChatBox = ({
   currentUserId: string;
   otherUserId: string;
 }) => {
+  const [toastMsg, setToastMsg] = useState("");
+
+
   const [matchedChat, setMatchedChat] = useState<any | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -101,11 +105,28 @@ console.log(contacts)
     //   }
     // };
 
+    // const handleReceive = (msg: Message) => {
+    //   console.log("📩 New Message Received:", msg);
+    //   setMessages((prev) => [...prev, msg]);
+    // };
     const handleReceive = (msg: Message) => {
       console.log("📩 New Message Received:", msg);
+    
+      // Only notify if the sender is the other user
+      if (msg.senderId === otherUserId) {
+        // ✅ Play sound
+        const audio = new Audio("/sounds/new-notification-09-352705.mp3");
+        audio.play().catch((err) =>
+          console.warn("🔇 Autoplay blocked:", err.message)
+        );
+        setToastMsg(`📨 ${msg.message}`);
+
+        // ✅ Optional: show toast (if using react-toastify)
+        // toast.info(New message: ${msg.message}, { autoClose: 2000 });
+      }
+    
       setMessages((prev) => [...prev, msg]);
     };
-    
 
     socket.on("newMessageReceived", handleReceive);
 
@@ -161,6 +182,7 @@ console.log(contacts)
       </div>
 
       {/* Messages */}
+      {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg("")} />}
       <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
         {messages?.map((msg, i) => (
           <div

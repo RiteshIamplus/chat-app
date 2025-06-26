@@ -29,6 +29,7 @@ function App() {
    <ChatBox currentUserId="john002" otherUserId="ajay001" /> */}
       <Navbar/>
       <AuthRoutes />
+
       {/* <PushNotifications/> */}
      
 
