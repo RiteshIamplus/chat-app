@@ -2,7 +2,8 @@ import Navbar from "./Pages/Navbar";
 // import PushNotifications from "./PushNotifications";
 import AuthRoutes from "./routes/MainRouts";
 import { useEffect } from 'react';
-import { registerPush } from './utils/registerPush.js';
+import { registerPush } from "./utils/registerPush";
+
 
 
 function App() {
