@@ -12,7 +12,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export async function registerPush(userId: string): Promise<void> {
   if ('serviceWorker' in navigator && 'PushManager' in window) {
     try {
-      const registration = await navigator.serviceWorker.register('/public/sw.js');
+      const registration = await navigator.serviceWorker.register('/sw.js');
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -22,6 +22,7 @@ export async function registerPush(userId: string): Promise<void> {
         userId,
         subscription
       });
+      
 
       console.log("✅ Push subscription saved to backend.");
     } catch (err) {
