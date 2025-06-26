@@ -5,10 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import API from "@/lib/axios";
 import { BASE_URL } from "@/lib/baseUrl";
 import { io } from "socket.io-client";
+import Toast from "@/components/custom/toast/Toast";
 
 const socket = io(BASE_URL);
 const ChatList = () => {
   const navigate = useNavigate();
+  const [toastMsg, setToastMsg] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [query, setQuery] = useState('');
   const [searchResult, setSearchResult] = useState<any | null>(null);
@@ -38,9 +40,14 @@ useEffect(() => {
   socket.emit("join", { userId: user._id });
   socket.emit("joinGroup", { groupId: groupID, userId: user._id });
 
-  socket.on("newUnreadMessage", ({ from }) => {
+  socket.on("newUnreadMessage", ({ from,msg }) => {
     console.log("📩 Real-time update from", from);
     fetchChatList();
+    const audio = new Audio("/sounds/new-notification-09-352705.mp3");
+        audio.play().catch((err) =>
+          console.warn("🔇 Autoplay blocked:", err.message)
+        );
+        setToastMsg(`📨 ${msg?.message || "New message"}`);
   });
 
   socket.on("newGroupCreated", (data) => {
@@ -164,7 +171,7 @@ useEffect(() => {
               Search
             </button>
           </div>
-
+          {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg("")} />}
           {searchResult && (
             <div className="bg-white dark:bg-gray-900 mt-3 p-3 rounded border">
               <p className="font-semibold text-green-700">✅ User Found:</p>
