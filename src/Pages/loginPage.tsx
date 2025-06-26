@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("send"); // 'send' or 'verify'
   const [message, setMessage] = useState("");
+  const [viewOTP, setviewOTP] = useState("");
 const userString = localStorage.getItem("user");
 const user = userString ? JSON.parse(userString) : null;
 console.log(user);
@@ -18,6 +19,7 @@ console.log(user);
     try {
       const res = await API.post("/api/auth/register", { phone_number });
       setMessage(res.data.message);
+      setviewOTP(res?.data?.smsSent)
       setStep("verify");
     } catch (err:any) {
       setMessage(err.response?.data?.message || "Failed to send OTP");
@@ -28,6 +30,7 @@ console.log(user);
     try {
       const res = await API.post("/api/auth/verifyOtp", { phone_number, otp });
       setMessage(res.data.message);
+
       localStorage.setItem("user", JSON.stringify(res.data.user));
       setStep("done");
       navigate("/chatlist"); // ✅ Redirect to chatlist
@@ -35,7 +38,7 @@ console.log(user);
       setMessage(err.response?.data?.message || "Invalid OTP");
     }
   };
-  
+  console.log(message)
 
   return (
     <div className="w-full flex items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -62,6 +65,7 @@ console.log(user);
 
         {step === "verify" && (
           <>
+          <h2>OTP : {viewOTP}</h2>
             <p className="mb-2 text-sm text-gray-600">OTP sent to {phone_number}</p>
             <input
               type="text"
