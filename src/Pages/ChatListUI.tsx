@@ -15,6 +15,7 @@ const ChatList = () => {
   const [notFound, setNotFound] = useState(false);
   const [selectedUserID] = useState<string | null>(null);
 console.log(selectedUserID)
+console.log(contacts)
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
 // console.log(user)
@@ -106,9 +107,22 @@ useEffect(() => {
     return (
       <div
         key={item._id}
-        onClick={() => navigate(`/chat/${item._id}`, {
-          state: { type: item.type, participants: item.participants }
-        })}
+        onClick={
+          
+          async () => {
+          // try {
+          //   await API.post(`/api/chat/markRead/${user._id}`, {
+          //     chatId: item._id,
+          //   });
+          // } catch (err) {
+          //   console.error("❌ Failed to mark chat as read", err);
+          // }
+        
+          navigate(`/chat/${item._id}`, {
+            state: { type: item.type, participants: item.participants }
+          });
+        }}
+        
 
         className="flex items-center gap-3 p-3 rounded hover:bg-muted cursor-pointer transition"
       >

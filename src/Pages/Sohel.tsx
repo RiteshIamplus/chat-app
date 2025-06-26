@@ -116,6 +116,21 @@ console.log(contacts)
 
   useEffect(scrollToBottom, [messages]);
 
+  useEffect(() => {
+    const markChatAsRead = async () => {
+      try {
+        await API.post(`/api/chat/markRead/${currentUserId}`);
+      } catch (err) {
+        console.error("❌ Failed to mark chat as read", err);
+      }
+    };
+  
+    markChatAsRead(); // ✅ Call it
+  }, []);
+  
+
+
+
   const sendMessage = () => {
     if (!newMessage.trim()) return;
 
