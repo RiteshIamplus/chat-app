@@ -1,5 +1,6 @@
 // components/RedirectIfLoggedIn.tsx
 
+import { JSX } from "react";
 import { Navigate } from "react-router-dom";
 
 const RedirectIfLoggedIn = ({ children }: { children: JSX.Element }) => {
