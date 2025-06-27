@@ -13,11 +13,16 @@ const Navbar = () => {
     navigate("/login");
     setOpen(false); // 🔹 Close the sidebar on logout
   };
-
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 shadow-md bg-white dark:bg-black">
-      <div className="text-xl font-bold">ImPlus</div>
-
+      <div className="text-xl font-bold "><h2>ImPlus</h2>  <h3 className="text-sm text-gray-800 font-bold">
+          {user?.display_name || user?.phone_number || "Guest"}
+        </h3> </div>
+     
+     
       {/* Mobile Sidebar */}
       <div className="md:hidden">
         <Sheet open={open} onOpenChange={setOpen}>

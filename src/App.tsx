@@ -3,6 +3,7 @@ import Navbar from "./Pages/Navbar";
 import AuthRoutes from "./routes/MainRouts";
 import { useEffect } from 'react';
 import { registerPush } from "./utils/registerPush";
+import IOSInstallPrompt from "./IOSInstallPrompt";
 
 
 
@@ -29,6 +30,7 @@ function App() {
    <ChatBox currentUserId="john002" otherUserId="ajay001" /> */}
       <Navbar/>
       <AuthRoutes />
+      <IOSInstallPrompt/>
 
       {/* <PushNotifications/> */}
      
