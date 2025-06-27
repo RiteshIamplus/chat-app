@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import API from "@/lib/axios";
 import { BASE_URL } from "@/lib/baseUrl";
+import Toast from "@/components/custom/toast/Toast";
 
 const socket = io(BASE_URL);
 
 type Message = {
   senderId: string;
   message: string;
+
   timestamp: string;
   messageType?: string;
   payload?: any;
@@ -25,7 +27,7 @@ const GroupChatBox = ({
   const [groupStatus, setGroupStatus] = useState("No group status set");
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const [toastMsg, setToastMsg] = useState("");
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -44,6 +46,7 @@ const GroupChatBox = ({
     API.get(`/api/chat/full-chat-list/${currentUserId}`)
       .then((res) => {
         const chats = res?.data?.data || [];
+        console.log(chats);
         const groupChat = chats.find(
           (chat: any) => chat.type === "group" && chat._id === groupId
         );
@@ -53,9 +56,17 @@ const GroupChatBox = ({
       })
       .catch((err) => console.error("Error getting group info:", err));
 
-    const receiveGroupMessage = (msg: Message) => {
-      setMessages((prev) => [...prev, msg]);
-    };
+      const receiveGroupMessage = (msg: Message) => {
+        // ✅ Play sound
+        const audio = new Audio("/sounds/new-notification-09-352705.mp3");
+        audio.play().catch((err) =>
+          console.warn("🔇 Autoplay blocked:", err.message)
+        );
+      
+        setToastMsg(`📨 ${msg.message}`);
+        setMessages((prev) => [...prev, msg]);
+      };
+      
 
     socket.on("receiveGroupMessage", receiveGroupMessage);
     socket.on("groupError", (err) => alert(err.message));
@@ -75,9 +86,9 @@ const GroupChatBox = ({
         console.error("❌ Failed to mark chat as read", err);
       }
     };
-  
+
     markChatAsRead(); // ✅ Call it
-  }, []);
+  }, [messages]);
   const sendMessage = () => {
     if (!newMessage.trim()) return;
 
@@ -101,8 +112,9 @@ const GroupChatBox = ({
 
     setNewMessage("");
   };
-
+console.log(messages)
   const renderMessageContent = (msg: Message) => {
+    // console.log(msg)
     switch (msg.messageType) {
       case "visitor":
         return (
@@ -152,8 +164,16 @@ const GroupChatBox = ({
             📎 {msg.payload?.fileName}
           </a>
         );
-      default:
-        return <p>{msg.message}</p>;
+        default:
+          return (
+            <div>
+              {msg.senderId !== currentUserId && (
+                <p className="text-md text-yellow-950 font-bold">{msg?.senderName}</p>
+              )}
+              <p>{msg.message}</p>
+            </div>
+          );
+        
     }
   };
 
@@ -172,8 +192,8 @@ const GroupChatBox = ({
             key={i}
             className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
               msg.senderId === currentUserId
-                ? "ml-auto bg-blue-600 text-white"
-                : "mr-auto bg-gray-200 text-black"
+                ? "ml-auto bg-blue-500 text-white"
+                : "mr-auto bg-gray-500 text-white"
             }`}
           >
             {renderMessageContent(msg)}
@@ -187,7 +207,7 @@ const GroupChatBox = ({
         ))}
         <div ref={messagesEndRef} />
       </div>
-
+      {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg("")} />}
       {/* Input */}
       <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
         <input

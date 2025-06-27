@@ -112,22 +112,23 @@ console.log(contacts)
     const handleReceive = (msg: Message) => {
       console.log("📩 New Message Received:", msg);
     
-      // Only notify if the sender is the other user
       if (msg.senderId === otherUserId) {
-        // ✅ Play sound
+        // 🔔 Play sound + toast
         const audio = new Audio("/sounds/new-notification-09-352705.mp3");
         audio.play().catch((err) =>
           console.warn("🔇 Autoplay blocked:", err.message)
         );
         setToastMsg(`📨 ${msg.message}`);
-
-        // ✅ Optional: show toast (if using react-toastify)
-        // toast.info(New message: ${msg.message}, { autoClose: 2000 });
+    
+        // ✅ Mark this message as read (only for incoming messages)
+        API.post(`/api/chat/markRead/${currentUserId}`).catch((err) =>
+          console.error("❌ Failed to mark chat as read", err)
+        );
       }
     
       setMessages((prev) => [...prev, msg]);
     };
-
+    
     socket.on("newMessageReceived", handleReceive);
 
     return () => {
@@ -136,8 +137,9 @@ console.log(contacts)
   }, [currentUserId, otherUserId]);
 
   useEffect(scrollToBottom, [messages]);
-
   useEffect(() => {
+    if (!currentUserId) return;
+  
     const markChatAsRead = async () => {
       try {
         await API.post(`/api/chat/markRead/${currentUserId}`);
@@ -146,10 +148,9 @@ console.log(contacts)
       }
     };
   
-    markChatAsRead(); // ✅ Call it
-  }, []);
+    markChatAsRead(); // ✅ Only on mount
+  }, [currentUserId]);
   
-
 
 
   const sendMessage = () => {
@@ -190,7 +191,7 @@ console.log(contacts)
             className={`max-w-[70%] px-4 py-2 rounded-lg shadow-sm text-sm ${
               msg.senderId === currentUserId
                 ? "ml-auto bg-blue-500 text-white"
-                : "mr-auto bg-gray-200 text-black"
+                : "mr-auto bg-gray-500 text-black"
             }`}
           >
             <p>{msg.message}</p>

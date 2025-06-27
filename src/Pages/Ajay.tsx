@@ -1,7 +1,7 @@
-import  { useEffect, useState } from 'react';
-import io from 'socket.io-client';
-import axios from 'axios';
-import { BASE_URL } from '@/lib/baseUrl';
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+import axios from "axios";
+import { BASE_URL } from "@/lib/baseUrl";
 
 const socket = io(BASE_URL);
 
@@ -12,26 +12,31 @@ type Message = {
   timestamp: string;
 };
 
-const AjayChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, otherUserId: string }) => {
+const AjayChatBox = ({
+  currentUserId,
+  otherUserId,
+}: {
+  currentUserId: string;
+  otherUserId: string;
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
-    socket.emit('join', { userId: currentUserId });
+    socket.emit("join", { userId: currentUserId });
 
-    axios.get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
-      .then(res => setMessages(res.data));
+    axios
+      .get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
+      .then((res) => setMessages(res.data));
 
-    socket.on('receiveMessage', (msg: Message) => {
-      if (
-        (msg.senderId === otherUserId && msg.receiverId === currentUserId)
-      ) {
-        setMessages(prev => [...prev, msg]);
+    socket.on("receiveMessage", (msg: Message) => {
+      if (msg.senderId === otherUserId && msg.receiverId === currentUserId) {
+        setMessages((prev) => [...prev, msg]);
       }
     });
 
     return () => {
-      socket.off('receiveMessage');
+      socket.off("receiveMessage");
     };
   }, [currentUserId, otherUserId]);
 
@@ -39,26 +44,38 @@ const AjayChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, ot
     const msg = {
       senderId: currentUserId,
       receiverId: otherUserId,
-      message: newMessage
+      message: newMessage,
     };
-    socket.emit('sendMessage', msg);
-    setMessages(prev => [...prev, { ...msg, timestamp: new Date().toISOString() }]);
-    setNewMessage('');
+    socket.emit("sendMessage", msg);
+    setMessages((prev) => [
+      ...prev,
+      { ...msg, timestamp: new Date().toISOString() },
+    ]);
+    setNewMessage("");
   };
-// try {
-// const res = await API.get(`/api/search?q=${query}`);
-// setResults(res.data);
-// } catch (err) {
-// console.error('Search failed:', err);
-// }
+  // try {
+  // const res = await API.get(`/api/search?q=${query}`);
+  // setResults(res.data);
+  // } catch (err) {
+  // console.error('Search failed:', err);
+  // }
   return (
     <div className="p-4 border rounded w-full max-w-md mx-auto">
-                <h1>AJAY </h1>
+      <h1>AJAY </h1>
       <div className="h-64 overflow-y-auto mb-2 bg-gray-100 p-2 rounded">
         {messages.map((msg, i) => (
-          <div key={i} className={`p-1 my-1 rounded ${msg.senderId === currentUserId ? 'text-right bg-blue-200' : 'text-left bg-gray-300'}`}>
+          <div
+            key={i}
+            className={`p-1 my-1 rounded ${
+              msg.senderId === currentUserId
+                ? "text-right bg-blue-200"
+                : "text-left bg-gray-300"
+            }`}
+          >
             <p>{msg.message}</p>
-            <small className="text-xs text-gray-600">{new Date(msg.timestamp).toLocaleTimeString()}</small>
+            <small className="text-xs text-gray-600">
+              {new Date(msg.timestamp).toLocaleTimeString()}
+            </small>
           </div>
         ))}
       </div>
@@ -69,7 +86,10 @@ const AjayChatBox = ({ currentUserId, otherUserId }: { currentUserId: string, ot
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
-        <button className="bg-blue-500 text-white px-4 py-1 rounded" onClick={sendMessage}>
+        <button
+          className="bg-blue-500 text-white px-4 py-1 rounded"
+          onClick={sendMessage}
+        >
           Send
         </button>
       </div>
