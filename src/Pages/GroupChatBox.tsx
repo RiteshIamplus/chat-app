@@ -9,7 +9,7 @@ const socket = io(BASE_URL);
 type Message = {
   senderId: string;
   message: string;
-
+  senderName?:string;
   timestamp: string;
   messageType?: string;
   payload?: any;
