@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import API from "@/lib/axios";
 import { BASE_URL } from "@/lib/baseUrl";
 import Toast from "@/components/custom/toast/Toast";
+import { useNavigate } from "react-router-dom";
 
 type Message = {
   senderId: string;
@@ -18,8 +19,8 @@ const SohelChatBox = ({
   currentUserId: string;
   otherUserId: string;
 }) => {
+  const navigate = useNavigate();
   const [toastMsg, setToastMsg] = useState("");
-
 
   const [matchedChat, setMatchedChat] = useState<any | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -27,7 +28,7 @@ const SohelChatBox = ({
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(io(BASE_URL));
   const messagesEndRef = useRef<HTMLDivElement>(null);
-console.log(contacts)
+  console.log(contacts);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -48,7 +49,10 @@ console.log(contacts)
         setMatchedChat(matched || null);
       })
       .catch((err) => {
-        console.error("❌ API Error:", err.response?.data || err.message || err);
+        console.error(
+          "❌ API Error:",
+          err.response?.data || err.message || err
+        );
       });
   }, [currentUserId, otherUserId]);
 
@@ -84,10 +88,9 @@ console.log(contacts)
 
     // Fetch existing messages
     API.get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
-      .then((res) =>{ 
-        console.log(res.data)
-        setMessages(res?.data.data)
-      
+      .then((res) => {
+        console.log(res.data);
+        setMessages(res?.data.data);
       })
       .catch(console.error);
 
@@ -111,24 +114,24 @@ console.log(contacts)
     // };
     const handleReceive = (msg: Message) => {
       console.log("📩 New Message Received:", msg);
-    
+
       if (msg.senderId === otherUserId) {
         // 🔔 Play sound + toast
         const audio = new Audio("/sounds/new-notification-09-352705.mp3");
-        audio.play().catch((err) =>
-          console.warn("🔇 Autoplay blocked:", err.message)
-        );
+        audio
+          .play()
+          .catch((err) => console.warn("🔇 Autoplay blocked:", err.message));
         setToastMsg(`📨 ${msg.message}`);
-    
+
         // ✅ Mark this message as read (only for incoming messages)
         API.post(`/api/chat/markRead/${currentUserId}`).catch((err) =>
           console.error("❌ Failed to mark chat as read", err)
         );
       }
-    
+
       setMessages((prev) => [...prev, msg]);
     };
-    
+
     socket.on("newMessageReceived", handleReceive);
 
     return () => {
@@ -139,7 +142,7 @@ console.log(contacts)
   useEffect(scrollToBottom, [messages]);
   useEffect(() => {
     if (!currentUserId) return;
-  
+
     const markChatAsRead = async () => {
       try {
         await API.post(`/api/chat/markRead/${currentUserId}`);
@@ -147,11 +150,9 @@ console.log(contacts)
         console.error("❌ Failed to mark chat as read", err);
       }
     };
-  
+
     markChatAsRead(); // ✅ Only on mount
   }, [currentUserId]);
-  
-
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
@@ -169,16 +170,97 @@ console.log(contacts)
     ]);
     setNewMessage("");
   };
-
+  const initiateCall = (isVideo: boolean) => {
+    const socket = socketRef.current;
+  
+    socket.emit("startCall", {
+      fromUserId: currentUserId,
+      toUserId: otherUserId,
+      isVideo,
+    });
+  
+    navigate(isVideo ? "/videocall" : "/audiocall", {
+      state: {
+        callerId: currentUserId,
+        receiverId: otherUserId,
+        incoming: false,
+        isVideo,
+      },
+    });
+  };
+  useEffect(() => {
+    const socket = socketRef.current;
+  
+    // existing emits
+    socket.emit("userOnline", currentUserId);
+    socket.emit("join", { userId: currentUserId });
+  
+    // 🆕 Listen for incoming calls
+    socket.on("incomingCall", ({ fromUserId, isVideo }) => {
+      console.log("📞 Incoming Call from:", fromUserId);
+  
+      const ringtone = new Audio("/sounds/new-notification-09-352705.mp3");
+      ringtone.loop = true;
+      ringtone.play().catch((err) =>
+        console.warn("🔇 Ringtone autoplay blocked", err)
+      );
+  
+      const confirmCall = window.confirm(
+        `${isVideo ? "Video" : "Audio"} call from ${fromUserId}. Accept?`
+      );
+  
+      if (confirmCall) {
+        ringtone.pause();
+        navigate(isVideo ? "/videocall" : "/audiocall", {
+          state: {
+            callerId: fromUserId,
+            receiverId: currentUserId,
+            incoming: true,
+            isVideo,
+          },
+        });
+      } else {
+        ringtone.pause();
+        socket.emit("callDeclined", { toUserId: fromUserId });
+      }
+    });
+  
+    return () => {
+      socket.off("incomingCall");
+    };
+  }, [currentUserId]);
+  
   return (
     <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
       {/* Header */}
-      <div className="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
-        <div>{matchedChat?.userName}</div>
-        <div className="text-xs text-white/80 font-normal">
-          {!matchedChat?.online && matchedChat?.last_seen
-            ? formatLastSeen(matchedChat.last_seen)
-            : "online"}
+      <div className=" flex justify-between fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
+        <div>
+          <div>{matchedChat?.userName}</div>
+          <div className="text-xs text-white/80 font-normal">
+            {!matchedChat?.online && matchedChat?.last_seen
+              ? formatLastSeen(matchedChat.last_seen)
+              : "online"}
+          </div>
+        </div>
+        <div>
+          {/* <button
+            onClick={() =>
+              navigate("/videocall", {
+                state: {
+                  callerId: currentUserId,
+                  receiverId: otherUserId,
+                  incoming: false,
+                  isVideo: true,
+                },
+              })
+            }
+          >
+            videocll
+          </button>
+          <button onClick={() => navigate("/audiocall")}>audiocll</button> */}
+          <button onClick={() => initiateCall(true)}>📹 Video Call</button>
+<button onClick={() => initiateCall(false)}>🎧 Audio Call</button>
+
         </div>
       </div>
 
