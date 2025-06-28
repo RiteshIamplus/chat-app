@@ -1,131 +1,146 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Device, types } from "mediasoup-client";
-import socket from "@/socket";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { io } from "socket.io-client";
+import * as mediasoupClient from "mediasoup-client";
+import { types } from "mediasoup-client";
+const CallScreen = () => {
+  const location = useLocation();
+  const { callerId, receiverId, incoming, isVideo } = location.state;
+  console.log(callerId, receiverId, incoming);
 
-// Interfaces for socket responses
-interface TransportOptions extends types.TransportOptions {
-  id: string;
-  iceParameters: any;
-  iceCandidates: any[];
-  dtlsParameters: any;
-}
-
-interface ConsumerParams {
-  id: string;
-  producerId: string;
-  kind: "audio" | "video";
-  rtpParameters: types.RtpParameters;
-}
-
-const CallScreen: React.FC = () => {
+  const socketRef = useRef(io("https://implusbackend-3xce.onrender.com"));
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-  const [device, setDevice] = useState<types.Device | null>(null);
-  const [sendTransport, setSendTransport] = useState<types.SendTransport | null>(null);
-  const [recvTransport, setRecvTransport] = useState<types.RecvTransport | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  console.log(remoteStream);
 
-  console.log(sendTransport,device,recvTransport)
+  const deviceRef = useRef<mediasoupClient.Device | null>(null);
+  const sendTransportRef = useRef<types.Transport | null>(null);
+  const recvTransportRef = useRef<types.Transport | null>(null);
+  
+  
+
   useEffect(() => {
-    const startCall = async () => {
-      // Step 1: Load RTP Capabilities
-      const routerRtpCapabilities: types.RtpCapabilities = await new Promise((resolve) => {
-        socket.emit("getRtpCapabilities", resolve);
+    initCall();
+
+    return () => {
+      socketRef.current.disconnect();
+      sendTransportRef.current?.close();
+      recvTransportRef.current?.close();
+      localStream?.getTracks().forEach((t) => t.stop());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initCall = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: isVideo,
+      audio: true,
+    });
+
+    setLocalStream(stream);
+    if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+    const socket = socketRef.current;
+
+    // Step 1: Load Device
+    const rtpCapabilities: mediasoupClient.types.RtpCapabilities = await new Promise((res) =>
+      socket.emit("getRtpCapabilities", res)
+    );
+
+    const device = new mediasoupClient.Device();
+    await device.load({ routerRtpCapabilities: rtpCapabilities });
+    deviceRef.current = device;
+
+    // Step 2: Create Send Transport
+    const sendTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
+      socket.emit("createTransport", res)
+    );
+
+    const sendTransport = device.createSendTransport(sendTransportData);
+
+    sendTransport.on("connect", ({ dtlsParameters }, cb) => {
+      socket.emit("connectTransport", { dtlsParameters }, cb);
+    });
+
+    sendTransport.on("produce", async ({ kind, rtpParameters }, cb) => {
+      const { id }: { id: string } = await new Promise((res) =>
+        socket.emit("produce", { kind, rtpParameters }, res)
+      );
+      cb({ id });
+    });
+
+    sendTransportRef.current = sendTransport;
+
+    // Step 3: Produce Local Tracks
+    for (const track of stream.getTracks()) {
+      await sendTransport.produce({ track });
+    }
+
+    // Step 4: Listen for Remote Producer
+    socket.on("newProducer", async ({ producerId }: { producerId: string }) => {
+      const recvTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
+        socket.emit("createTransport", res)
+      );
+
+      const recvTransport = device.createRecvTransport(recvTransportData);
+
+      recvTransport.on("connect", ({ dtlsParameters }, cb) => {
+        socket.emit("connectTransport", { dtlsParameters }, cb);
       });
 
-      const device = new Device();
-      await device.load({ routerRtpCapabilities });
-      setDevice(device);
-
-      // Step 2: Get User Media
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
-      // Step 3: Create Send Transport
-      const sendTransportOptions: TransportOptions = await new Promise((resolve) => {
-        socket.emit("createTransport", resolve);
-      });
-
-      const sendTransport = device.createSendTransport(sendTransportOptions);
-
-      sendTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
-        socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
-          res === "connected" ? callback() : errback(new Error("Failed to connect send transport"));
-        });
-      });
-
-      sendTransport.on("produce", ({ kind, rtpParameters }, callback, errback) => {
-        socket.emit("produce", { kind, rtpParameters }, (response: { id: string }) => {
-          if (response?.id) callback({ id: response.id });
-          else errback(new Error("Failed to produce"));
-        });
-      });
-
-      setSendTransport(sendTransport);
-
-      // Step 4: Produce Track
-      const track = stream.getVideoTracks()[0];
-      const producer = await sendTransport.produce({ track });
-
-      // Step 5: Create Receive Transport
-      const recvTransportOptions: TransportOptions = await new Promise((resolve) => {
-        socket.emit("createTransport", resolve);
-      });
-
-      const recvTransport = device.createRecvTransport(recvTransportOptions);
-
-      recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
-        socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
-          res === "connected" ? callback() : errback(new Error("Failed to connect recv transport"));
-        });
-      });
-
-      setRecvTransport(recvTransport);
-
-      // Step 6: Consume Remote Track
-      const consumerParams: ConsumerParams = await new Promise((resolve) => {
+      const consumerParams: {
+        id: string;
+        producerId: string;
+        kind: "audio" | "video";
+        rtpParameters: mediasoupClient.types.RtpParameters;
+      } = await new Promise((res) =>
         socket.emit(
           "consume",
           {
-            producerId: producer.id,
+            producerId,
             rtpCapabilities: device.rtpCapabilities,
           },
-          resolve
-        );
-      });
+          res
+        )
+      );
 
-      const consumer = await recvTransport.consume({
-        id: consumerParams.id,
-        producerId: consumerParams.producerId,
-        kind: consumerParams.kind,
-        rtpParameters: consumerParams.rtpParameters,
-      });
+      const consumer = await recvTransport.consume(consumerParams);
+      const remoteMediaStream = new MediaStream([consumer.track]);
 
-      const remoteStream = new MediaStream([consumer.track]);
-
+      setRemoteStream(remoteMediaStream);
       if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.srcObject = remoteMediaStream;
       }
-    };
 
-    startCall();
-  }, []);
+      recvTransportRef.current = recvTransport;
+    });
+  };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">📞 Mediasoup Video Call</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-md font-medium mb-1">Local Video</h3>
-          <video ref={localVideoRef} autoPlay muted playsInline className="w-full rounded border" />
-        </div>
-        <div>
-          <h3 className="text-md font-medium mb-1">Remote Video</h3>
-          <video ref={remoteVideoRef} autoPlay playsInline className="w-full rounded border" />
-        </div>
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-900 text-white p-4 space-y-4">
+      <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call</h2>
+      <div className="flex gap-4">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          className="w-48 h-48 border rounded-xl"
+        />
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          className="w-48 h-48 border rounded-xl"
+        />
       </div>
+      <button
+        onClick={() => window.history.back()}
+        className="bg-red-600 text-white px-6 py-2 rounded-xl"
+      >
+        End Call
+      </button>
     </div>
   );
 };
