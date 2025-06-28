@@ -1,78 +1,93 @@
-// src/mediasoup/mediaHandlers.ts
+// // src/mediasoup/mediaHandlers.ts
 
-import socket from "@/socket";
-import { types } from 'mediasoup-client';
+// import socket from "@/socket";
+// import { types } from "mediasoup-client";
 
+// interface TransportParams {
+//   id: string;
+//   iceParameters: any;
+//   iceCandidates: any[];
+//   dtlsParameters: any;
+// }
 
-export const createTransport = async (device: types.Device): Promise<types.Transport> => {
-  const transportParams = await new Promise<any>((resolve) => {
-    socket.emit("createTransport", resolve);
-  });
+// interface ConsumerParams {
+//   id: string;
+//   producerId: string;
+//   kind: string;
+//   rtpParameters: any;
+// }
 
-  const transport = device.createSendTransport(transportParams);
+// export const createTransport = async (
+//   device: types.Device
+// ): Promise<types.SendTransport> => {
+//   const transportParams: TransportParams = await new Promise((resolve) => {
+//     socket.emit("createTransport", resolve);
+//   });
 
-  transport.on("connect", ({ dtlsParameters }, callback, errback) => {
-    socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
-      res === "connected" ? callback() : errback();
-    });
-  });
+//   const transport = device.createSendTransport(transportParams);
 
-  return transport;
-};
+//   transport.on("connect", ({ dtlsParameters }, callback, errback) => {
+//     socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
+//       res === "connected" ? callback() : errback(new Error("Failed to connect transport"));
+//     });
+//   });
 
-export const sendTrack = async (
-  transport: types.SendTransport,
-  track: MediaStreamTrack
-): Promise<types.Producer> => {
-  const producer = await transport.produce({ track });
+//   return transport;
+// };
 
-  socket.emit(
-    "produce",
-    {
-      kind: producer.kind,
-      rtpParameters: producer.rtpParameters,
-    },
-    ({ id }: { id: string }) => {
-      console.log("✅ Producer ID:", id);
-    }
-  );
+// export const sendTrack = async (
+//   transport: types.SendTransport,
+//   track: MediaStreamTrack
+// ): Promise<types.Producer> => {
+//   const producer = await transport.produce({ track });
 
-  return producer;
-};
+//   socket.emit(
+//     "produce",
+//     {
+//       kind: producer.kind,
+//       rtpParameters: producer.rtpParameters,
+//     },
+//     ({ id }: { id: string }) => {
+//       console.log("✅ Producer ID:", id);
+//     }
+//   );
 
-export const consumeTrack = async (
-  device: types.Device,
-  producerId: string
-): Promise<MediaStreamTrack> => {
-  const transportParams = await new Promise<any>((resolve) => {
-    socket.emit("createTransport", resolve);
-  });
+//   return producer;
+// };
 
-  const recvTransport = device.createRecvTransport(transportParams);
+// export const consumeTrack = async (
+//   device: types.Device,
+//   producerId: string
+// ): Promise<MediaStreamTrack> => {
+//   const transportParams: TransportParams = await new Promise((resolve) => {
+//     socket.emit("createTransport", resolve);
+//   });
 
-  recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
-    socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
-      res === "connected" ? callback() : errback();
-    });
-  });
+//   const recvTransport = device.createRecvTransport(transportParams);
 
-  const consumerParams = await new Promise<any>((resolve) => {
-    socket.emit(
-      "consume",
-      {
-        producerId,
-        rtpCapabilities: device.rtpCapabilities,
-      },
-      resolve
-    );
-  });
+//   recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
+//     socket.emit("connectTransport", { dtlsParameters }, (res: string) => {
+//       res === "connected" ? callback() : errback(new Error("Failed to connect transport"));
+//     });
+//   });
 
-  const consumer = await recvTransport.consume({
-    id: consumerParams.id,
-    producerId: consumerParams.producerId,
-    kind: consumerParams.kind,
-    rtpParameters: consumerParams.rtpParameters,
-  });
+//   const consumerParams: ConsumerParams = await new Promise((resolve) => {
+//     socket.emit(
+//       "consume",
+//       {
+//         producerId,
+//         rtpCapabilities: device.rtpCapabilities,
+//       },
+//       resolve
+//     );
+//   });
 
-  return consumer.track;
-};
+//   const consumer = await recvTransport.consume({
+//     id: consumerParams.id,
+//     producerId: consumerParams.producerId,
+//     kind: consumerParams.kind as "audio" | "video",
+//     rtpParameters: consumerParams.rtpParameters,
+//   });
+
+//   return consumer.track;
+// };

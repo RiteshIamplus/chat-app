@@ -4,8 +4,8 @@ import AuthRoutes from "./routes/MainRouts";
 import { useEffect } from 'react';
 import { registerPush } from "./utils/registerPush";
 import IOSInstallPrompt from "./IOSInstallPrompt";
-import VideoCall from "./Pages/mediasoup/VideoCall";
-import AudioCall from "./Pages/mediasoup/AudioCall";
+// import VideoCall from "./Pages/mediasoup/VideoCall";
+// import AudioCall from "./Pages/mediasoup/AudioCall";
 
 
 
