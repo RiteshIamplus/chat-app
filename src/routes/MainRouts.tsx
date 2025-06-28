@@ -8,6 +8,9 @@ import CreateGroupForm from "../Pages/CreateGroup";
 import PersonalChatPage from "@/Pages/PersonalChatPage";
 import RedirectIfLoggedIn from "./RedirectIfLoggedIn";
 import ProtectedRoute from "./ProtectedRoute";
+// import VideoCall from "@/Pages/mediasoup/VideoCall";
+// import AudioCall from "@/Pages/mediasoup/AudioCall";
+import CallScreen from "@/Pages/mediasoup/CallScreen";
 
 
 
@@ -78,6 +81,23 @@ const AuthRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/videocall"
+        element={
+          <ProtectedRoute>
+            <CallScreen  />
+          </ProtectedRoute>
+        }
+      />
+      {/* <Route
+        path="/audiocall"
+        element={
+          <ProtectedRoute>
+            <AudioCall  />
+          </ProtectedRoute>
+        }
+      /> */}
+
     </Routes>
   );
 };
