@@ -8,7 +8,7 @@ const CallScreen = () => {
   const { callerId, receiverId, incoming, isVideo } = location.state;
   console.log(callerId, receiverId, incoming);
 
-  const socketRef = useRef(io("https://implusbackend-3xce.onrender.com"));
+  const socketRef = useRef(io("http://3.111.23.208:5000/"));
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
