@@ -3,24 +3,29 @@ import { useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
 import { types } from "mediasoup-client";
+
 const CallScreen = () => {
   const location = useLocation();
-  const { callerId, receiverId, incoming, isVideo } = location.state;
-  console.log(callerId, receiverId, incoming);
+  const { callerId, receiverId, incoming, isVideo, roomId } = location.state;
 
-  const socketRef = useRef(io("http://3.111.23.208:5000/"));
+  const socketRef = useRef(
+    io("http://3.111.23.208:5000", {
+      query: {
+        userId: incoming ? receiverId : callerId,
+        roomId: roomId,
+      },
+    })
+  );
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  console.log(remoteStream);
 
   const deviceRef = useRef<mediasoupClient.Device | null>(null);
   const sendTransportRef = useRef<types.Transport | null>(null);
   const recvTransportRef = useRef<types.Transport | null>(null);
-  
-  
 
   useEffect(() => {
     initCall();
@@ -45,8 +50,7 @@ const CallScreen = () => {
 
     const socket = socketRef.current;
 
-    // Step 1: Load Device
-    const rtpCapabilities: mediasoupClient.types.RtpCapabilities = await new Promise((res) =>
+    const rtpCapabilities = await new Promise<any>((res) =>
       socket.emit("getRtpCapabilities", res)
     );
 
@@ -54,19 +58,22 @@ const CallScreen = () => {
     await device.load({ routerRtpCapabilities: rtpCapabilities });
     deviceRef.current = device;
 
-    // Step 2: Create Send Transport
-    const sendTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
-      socket.emit("createTransport", res)
+    const sendTransportData = await new Promise<any>((res) =>
+      socket.emit("createSendTransport", res)
     );
 
     const sendTransport = device.createSendTransport(sendTransportData);
 
     sendTransport.on("connect", ({ dtlsParameters }, cb) => {
-      socket.emit("connectTransport", { dtlsParameters }, cb);
+      socket.emit(
+        "connectTransport",
+        { dtlsParameters, isConsumer: false },
+        cb
+      );
     });
 
     sendTransport.on("produce", async ({ kind, rtpParameters }, cb) => {
-      const { id }: { id: string } = await new Promise((res) =>
+      const { id } = await new Promise<any>((res) =>
         socket.emit("produce", { kind, rtpParameters }, res)
       );
       cb({ id });
@@ -74,54 +81,79 @@ const CallScreen = () => {
 
     sendTransportRef.current = sendTransport;
 
-    // Step 3: Produce Local Tracks
     for (const track of stream.getTracks()) {
       await sendTransport.produce({ track });
     }
 
-    // Step 4: Listen for Remote Producer
-    socket.on("newProducer", async ({ producerId }: { producerId: string }) => {
-      const recvTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
-        socket.emit("createTransport", res)
+    const recvTransportData = await new Promise<any>((res) =>
+      socket.emit("createRecvTransport", res)
+    );
+
+    const recvTransport = device.createRecvTransport(recvTransportData);
+
+    recvTransport.on("connect", ({ dtlsParameters }, cb) => {
+      socket.emit(
+        "connectTransport",
+        { dtlsParameters, isConsumer: true },
+        cb
       );
-
-      const recvTransport = device.createRecvTransport(recvTransportData);
-
-      recvTransport.on("connect", ({ dtlsParameters }, cb) => {
-        socket.emit("connectTransport", { dtlsParameters }, cb);
-      });
-
-      const consumerParams: {
-        id: string;
-        producerId: string;
-        kind: "audio" | "video";
-        rtpParameters: mediasoupClient.types.RtpParameters;
-      } = await new Promise((res) =>
-        socket.emit(
-          "consume",
-          {
-            producerId,
-            rtpCapabilities: device.rtpCapabilities,
-          },
-          res
-        )
-      );
-
-      const consumer = await recvTransport.consume(consumerParams);
-      const remoteMediaStream = new MediaStream([consumer.track]);
-
-      setRemoteStream(remoteMediaStream);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteMediaStream;
-      }
-
-      recvTransportRef.current = recvTransport;
     });
+
+    recvTransportRef.current = recvTransport;
+
+    const producerIds = await new Promise<string[]>((res) =>
+      socket.emit("getProducers", res)
+    );
+
+    for (const producerId of producerIds) {
+      await consume(producerId, recvTransport, device);
+    }
+
+    socket.on(
+      "newProducer",
+      async ({ producerId }: { producerId: string }) => {
+        await consume(producerId, recvTransport, device);
+      }
+    );
+  };
+
+  const consume = async (
+    producerId: string,
+    recvTransport: types.Transport,
+    device: mediasoupClient.Device
+  ) => {
+    const socket = socketRef.current;
+
+    const consumerParams = await new Promise<any>((res) =>
+      socket.emit(
+        "consume",
+        {
+          producerId,
+          rtpCapabilities: device.rtpCapabilities,
+        },
+        res
+      )
+    );
+
+    const consumer = await recvTransport.consume({
+      id: consumerParams.id,
+      producerId: consumerParams.producerId,
+      kind: consumerParams.kind,
+      rtpParameters: consumerParams.rtpParameters,
+    });
+
+    const remoteMediaStream = remoteStream ?? new MediaStream();
+    remoteMediaStream.addTrack(consumer.track);
+
+    setRemoteStream(remoteMediaStream);
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteMediaStream;
+    }
   };
 
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-900 text-white p-4 space-y-4">
-      <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call Now</h2>
+      <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call</h2>
       <div className="flex gap-4">
         <video
           ref={localVideoRef}

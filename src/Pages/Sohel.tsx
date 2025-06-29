@@ -26,9 +26,10 @@ const SohelChatBox = ({
   const [contacts, setContacts] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+
   const socketRef = useRef(io(BASE_URL));
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  console.log(contacts);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -83,47 +84,23 @@ const SohelChatBox = ({
   useEffect(() => {
     const socket = socketRef.current;
 
-    socket.emit("userOnline", currentUserId); // ✅ Mark user online
-    socket.emit("join", { userId: currentUserId }); // ✅ Join personal room
+    socket.emit("userOnline", currentUserId);
+    socket.emit("join", { userId: currentUserId });
 
-    // Fetch existing messages
     API.get(`/api/chat/messages/${currentUserId}/${otherUserId}`)
       .then((res) => {
-        console.log(res.data);
         setMessages(res?.data.data);
       })
       .catch(console.error);
 
-    // ✅ Handle real-time incoming messages
-    // const handleReceive = (msg: Message) => {
-    //   console.log(msg)
-    //   if (
-    //     msg.senderId === otherUserId &&
-    //     msg.receiverId === currentUserId
-    //   ) {
-    //     setMessages((prev) => {
-    //       console.log("Appending", msg, "to", prev);
-    //       return [...prev, msg];
-    //     });
-    //   }
-    // };
-
-    // const handleReceive = (msg: Message) => {
-    //   console.log("📩 New Message Received:", msg);
-    //   setMessages((prev) => [...prev, msg]);
-    // };
     const handleReceive = (msg: Message) => {
-      console.log("📩 New Message Received:", msg);
-
       if (msg.senderId === otherUserId) {
-        // 🔔 Play sound + toast
         const audio = new Audio("/sounds/new-notification-09-352705.mp3");
         audio
           .play()
           .catch((err) => console.warn("🔇 Autoplay blocked:", err.message));
         setToastMsg(`📨 ${msg.message}`);
 
-        // ✅ Mark this message as read (only for incoming messages)
         API.post(`/api/chat/markRead/${currentUserId}`).catch((err) =>
           console.error("❌ Failed to mark chat as read", err)
         );
@@ -140,6 +117,7 @@ const SohelChatBox = ({
   }, [currentUserId, otherUserId]);
 
   useEffect(scrollToBottom, [messages]);
+
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -151,7 +129,7 @@ const SohelChatBox = ({
       }
     };
 
-    markChatAsRead(); // ✅ Only on mount
+    markChatAsRead();
   }, [currentUserId]);
 
   const sendMessage = () => {
@@ -170,45 +148,50 @@ const SohelChatBox = ({
     ]);
     setNewMessage("");
   };
+
+  const getRoomId = () => {
+    return currentUserId > otherUserId
+      ? `${currentUserId}_${otherUserId}`
+      : `${otherUserId}_${currentUserId}`;
+  };
+
   const initiateCall = (isVideo: boolean) => {
+    const roomId = getRoomId();
+
     const socket = socketRef.current;
-  
+
     socket.emit("startCall", {
       fromUserId: currentUserId,
       toUserId: otherUserId,
       isVideo,
     });
-  
+
     navigate(isVideo ? "/videocall" : "/audiocall", {
       state: {
         callerId: currentUserId,
         receiverId: otherUserId,
         incoming: false,
         isVideo,
+        roomId: roomId,
       },
     });
   };
+
   useEffect(() => {
     const socket = socketRef.current;
-  
-    // existing emits
-    socket.emit("userOnline", currentUserId);
-    socket.emit("join", { userId: currentUserId });
-  
-    // 🆕 Listen for incoming calls
+    const roomId = getRoomId();
+
     socket.on("incomingCall", ({ fromUserId, isVideo }) => {
-      console.log("📞 Incoming Call from:", fromUserId);
-  
       const ringtone = new Audio("/sounds/new-notification-09-352705.mp3");
       ringtone.loop = true;
       ringtone.play().catch((err) =>
         console.warn("🔇 Ringtone autoplay blocked", err)
       );
-  
+
       const confirmCall = window.confirm(
         `${isVideo ? "Video" : "Audio"} call from ${fromUserId}. Accept?`
       );
-  
+
       if (confirmCall) {
         ringtone.pause();
         navigate(isVideo ? "/videocall" : "/audiocall", {
@@ -217,6 +200,7 @@ const SohelChatBox = ({
             receiverId: currentUserId,
             incoming: true,
             isVideo,
+            roomId: roomId,
           },
         });
       } else {
@@ -224,16 +208,15 @@ const SohelChatBox = ({
         socket.emit("callDeclined", { toUserId: fromUserId });
       }
     });
-  
+
     return () => {
       socket.off("incomingCall");
     };
-  }, [currentUserId]);
-  
+  }, [currentUserId, otherUserId]);
+
   return (
     <div className="flex flex-col h-screen max-w-md w-full mx-auto bg-white dark:bg-black border rounded shadow-md my-16 relative">
-      {/* Header */}
-      <div className=" flex justify-between fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
+      <div className="flex justify-between fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-30 bg-blue-600 text-white font-semibold text-lg p-4 border-b">
         <div>
           <div>{matchedChat?.userName}</div>
           <div className="text-xs text-white/80 font-normal">
@@ -242,30 +225,14 @@ const SohelChatBox = ({
               : "online"}
           </div>
         </div>
-        <div>
-          {/* <button
-            onClick={() =>
-              navigate("/videocall", {
-                state: {
-                  callerId: currentUserId,
-                  receiverId: otherUserId,
-                  incoming: false,
-                  isVideo: true,
-                },
-              })
-            }
-          >
-            videocll
-          </button>
-          <button onClick={() => navigate("/audiocall")}>audiocll</button> */}
-          <button onClick={() => initiateCall(true)}>📹 Video Call</button>
-<button onClick={() => initiateCall(false)}>🎧 Audio Call</button>
-
+        <div className="flex gap-2">
+          <button onClick={() => initiateCall(true)}>📹 Video</button>
+          <button onClick={() => initiateCall(false)}>🎧 Audio</button>
         </div>
       </div>
 
-      {/* Messages */}
       {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg("")} />}
+
       <div className="flex-1 overflow-y-auto pt-[88px] pb-24 px-4 space-y-2 bg-gray-100 dark:bg-gray-800">
         {messages?.map((msg, i) => (
           <div
@@ -288,7 +255,6 @@ const SohelChatBox = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="w-full px-2 py-2 bg-white dark:bg-gray-900 border-t flex items-center gap-2 fixed bottom-0 max-w-md">
         <input
           type="text"
