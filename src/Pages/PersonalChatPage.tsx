@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
-import SohelChatBox from "./Sohel";
+// import SohelChatBox from "./Sohel";
 import { useLocation } from "react-router-dom";
 import GroupChatBox from "./GroupChatBox";
+import SingleChatBox from "./SingleChatBox";
 
 const PersonalChatPage = () => {
   const { userId } = useParams();
@@ -30,7 +31,8 @@ const PersonalChatPage = () => {
         <GroupChatBox groupId={userId} currentUserId={user._id} />
       
       ) : (
-        <SohelChatBox currentUserId={user._id} otherUserId={userId} />
+        // <SohelChatBox currentUserId={user._id} otherUserId={userId} />
+        <SingleChatBox currentUserId={user._id} otherUserId={userId} />
       )}
     </div>
   );
