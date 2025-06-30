@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { BASE_URL } from '@/lib/baseUrl';
 
-const socket = io(BASE_URL); // 🔁 Update with your signaling server
+const socket = io(BASE_URL);
 
 const VideoCalls: React.FC = () => {
   const localVideo = useRef<HTMLVideoElement | null>(null);
@@ -118,7 +118,10 @@ const VideoCalls: React.FC = () => {
 
   const acceptCall = async () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    ringtoneAudio.current?.pause();
+    if (ringtoneAudio.current) {
+      ringtoneAudio.current.pause();
+      ringtoneAudio.current.currentTime = 0;
+    }
     setIsReceivingCall(false);
 
     await setupConnection();
@@ -131,13 +134,15 @@ const VideoCalls: React.FC = () => {
 
   const rejectCall = (auto = false) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    ringtoneAudio.current?.pause();
+    if (ringtoneAudio.current) {
+      ringtoneAudio.current.pause();
+      ringtoneAudio.current.currentTime = 0;
+    }
     setIsReceivingCall(false);
     socket.emit('call-rejected');
     setIsCaller(false);
 
-    if (!auto) console.log("🚫 Video call manually rejected");
-    else console.log("⏰ Auto rejected video call");
+    console.log(auto ? "⏰ Auto rejected video call" : "🚫 Video call manually rejected");
   };
 
   const toggleMute = () => {
@@ -157,6 +162,11 @@ const VideoCalls: React.FC = () => {
   };
 
   const endCall = () => {
+    if (ringtoneAudio.current) {
+      ringtoneAudio.current.pause();
+      ringtoneAudio.current.currentTime = 0;
+    }
+
     peerConnection.current?.close();
     peerConnection.current = null;
     setInCall(false);

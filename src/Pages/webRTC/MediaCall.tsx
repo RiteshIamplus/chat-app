@@ -2,11 +2,14 @@ import { BASE_URL } from "@/lib/baseUrl";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
 const SERVER_URL = BASE_URL;
 
 const MediaCall = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
   const { callerId, receiverId, incoming, isVideo } = location.state;
 
   const socketRef = useRef<Socket | null>(null);
@@ -16,7 +19,7 @@ const MediaCall = () => {
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-console.log(incoming,remoteStream)
+  console.log(incoming, remoteStream);
   const roomId =
     callerId > receiverId
       ? `${callerId}-${receiverId}`
@@ -60,8 +63,10 @@ console.log(incoming,remoteStream)
 
     socket.off("user-joined-call");
     socket.on("user-joined-call", (userId: string) => {
-      createOffer(userId);
-    });
+        if (!incoming) {
+          createOffer(userId);
+        }
+      });
 
     socket.off("user-left-call");
     socket.on("user-left-call", () => {
@@ -141,12 +146,13 @@ console.log(incoming,remoteStream)
 
   const endCall = () => {
     cleanup();
+    navigate(-1);
   };
 
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-900 text-white p-4 space-y-4">
       <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call</h2>
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4">
         <video
           ref={localVideoRef}
           autoPlay
