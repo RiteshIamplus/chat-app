@@ -171,7 +171,7 @@ const SingleChatBox = ({
     socket.on("incomingCall", ({ fromUserId, isVideo }) => {
       console.log("📞 Incoming Call from:", fromUserId);
 
-      const ringtone = new Audio("/sounds/ringtone.mp3");
+      const ringtone = new Audio("/sounds/7120-download-iphone-6-original-ringtone-42676 (1).mp3");
       ringtone.loop = true;
       ringtone.play().catch(() => console.warn("🔇 Ringtone autoplay blocked"));
 
