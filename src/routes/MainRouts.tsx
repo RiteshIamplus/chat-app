@@ -11,6 +11,7 @@ import ProtectedRoute from "./ProtectedRoute";
 // import VideoCall from "@/Pages/mediasoup/VideoCall";
 // import AudioCall from "@/Pages/mediasoup/AudioCall";
 import CallScreen from "@/Pages/mediasoup/CallScreen";
+import MediaCall from "@/Pages/webRTC/MediaCall";
 
 
 
@@ -85,7 +86,7 @@ const AuthRoutes: React.FC = () => {
         path="/videocall"
         element={
           <ProtectedRoute>
-            <CallScreen  />
+            <MediaCall  />
           </ProtectedRoute>
         }
       />

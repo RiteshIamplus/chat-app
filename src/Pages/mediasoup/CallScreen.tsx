@@ -1,26 +1,42 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
-import { types } from "mediasoup-client";
+
 const CallScreen = () => {
   const location = useLocation();
-  const { callerId, receiverId, incoming, isVideo } = location.state;
-  console.log(callerId, receiverId, incoming);
+  const {
+    callerId,
+    receiverId,
+    incoming,
+    isVideo,
+  }: {
+    callerId: string;
+    receiverId: string;
+    incoming: boolean;
+    isVideo: boolean;
+  } = location.state;
 
-  const socketRef = useRef(io("https://implusbackend-3xce.onrender.com"));
+  const roomId = [callerId, receiverId].sort().join("-");
+
+  const socketRef = useRef<Socket>(
+    io("https://implusbackend-3xce.onrender.com", {
+      query: {
+        userId: incoming ? receiverId : callerId,
+        roomId,
+      },
+    })
+  );
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  console.log(remoteStream);
-
+console.log(remoteStream)
   const deviceRef = useRef<mediasoupClient.Device | null>(null);
-  const sendTransportRef = useRef<types.Transport | null>(null);
-  const recvTransportRef = useRef<types.Transport | null>(null);
-  
-  
+  const sendTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
+  const recvTransportRef = useRef<mediasoupClient.types.Transport | null>(null);
 
   useEffect(() => {
     initCall();
@@ -45,7 +61,6 @@ const CallScreen = () => {
 
     const socket = socketRef.current;
 
-    // Step 1: Load Device
     const rtpCapabilities: mediasoupClient.types.RtpCapabilities = await new Promise((res) =>
       socket.emit("getRtpCapabilities", res)
     );
@@ -54,15 +69,14 @@ const CallScreen = () => {
     await device.load({ routerRtpCapabilities: rtpCapabilities });
     deviceRef.current = device;
 
-    // Step 2: Create Send Transport
-    const sendTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
-      socket.emit("createTransport", res)
+    const sendTransportOptions = await new Promise<any>((res) =>
+      socket.emit("createSendTransport", res)
     );
 
-    const sendTransport = device.createSendTransport(sendTransportData);
+    const sendTransport = device.createSendTransport(sendTransportOptions);
 
     sendTransport.on("connect", ({ dtlsParameters }, cb) => {
-      socket.emit("connectTransport", { dtlsParameters }, cb);
+      socket.emit("connectTransport", { dtlsParameters, isConsumer: false }, cb);
     });
 
     sendTransport.on("produce", async ({ kind, rtpParameters }, cb) => {
@@ -74,35 +88,25 @@ const CallScreen = () => {
 
     sendTransportRef.current = sendTransport;
 
-    // Step 3: Produce Local Tracks
     for (const track of stream.getTracks()) {
       await sendTransport.produce({ track });
     }
 
-    // Step 4: Listen for Remote Producer
     socket.on("newProducer", async ({ producerId }: { producerId: string }) => {
-      const recvTransportData: mediasoupClient.types.TransportOptions = await new Promise((res) =>
-        socket.emit("createTransport", res)
+      const recvTransportOptions = await new Promise<any>((res) =>
+        socket.emit("createRecvTransport", res)
       );
 
-      const recvTransport = device.createRecvTransport(recvTransportData);
+      const recvTransport = device.createRecvTransport(recvTransportOptions);
 
       recvTransport.on("connect", ({ dtlsParameters }, cb) => {
-        socket.emit("connectTransport", { dtlsParameters }, cb);
+        socket.emit("connectTransport", { dtlsParameters, isConsumer: true }, cb);
       });
 
-      const consumerParams: {
-        id: string;
-        producerId: string;
-        kind: "audio" | "video";
-        rtpParameters: mediasoupClient.types.RtpParameters;
-      } = await new Promise((res) =>
+      const consumerParams = await new Promise<any>((res) =>
         socket.emit(
           "consume",
-          {
-            producerId,
-            rtpCapabilities: device.rtpCapabilities,
-          },
+          { producerId, rtpCapabilities: device.rtpCapabilities },
           res
         )
       );
