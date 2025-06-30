@@ -28,6 +28,9 @@ const CallScreen = () => {
     })
   );
 
+
+  const socketRef = useRef(io("http://3.111.23.208:5000/"));
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -125,7 +128,7 @@ console.log(remoteStream)
 
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-900 text-white p-4 space-y-4">
-      <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call</h2>
+      <h2 className="text-xl">{isVideo ? "Video" : "Audio"} Call Now</h2>
       <div className="flex gap-4">
         <video
           ref={localVideoRef}
