@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import SohelChatBox from "./Sohel";
+// import SohelChatBox from "./Sohel";
 import { useLocation } from "react-router-dom";
 import GroupChatBox from "./GroupChatBox";
 import SingleChatBox from "./SingleChatBox";
